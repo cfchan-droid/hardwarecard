@@ -1,0 +1,1028 @@
+html<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>電腦好卡 - 電腦硬件配對遊戲</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;900&family=Press+Start+2P&family=Noto+Sans+TC:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .tech-font {
+      font-family: 'Chakra Petch', sans-serif;
+    }
+    .pixel-font {
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    /* Cyber Tech HUD Styling */
+    .cyber-panel {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.15), inset 0 0 15px rgba(56, 189, 248, 0.05);
+      position: relative;
+    }
+    .cyber-panel::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: -2px; width: 12px; height: 12px;
+      border-top: 3px solid #38bdf8;
+      border-left: 3px solid #38bdf8;
+    }
+    .cyber-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; right: -2px; width: 12px; height: 12px;
+      border-bottom: 3px solid #f43f5e;
+      border-right: 3px solid #f43f5e;
+    }
+
+    /* 9:16 Fixed Card Architecture (Zero position displacement) */
+    .card-slot {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      perspective: 1000px;
+      -webkit-perspective: 1000px;
+    }
+
+    .card-inner {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      transform-origin: 50% 50%;
+    }
+
+    .card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    .card-back {
+      transform: rotateY(0deg) translateZ(1px);
+      -webkit-transform: rotateY(0deg) translateZ(1px);
+    }
+
+    .card-front {
+      transform: rotateY(180deg) translateZ(1px);
+      -webkit-transform: rotateY(180deg) translateZ(1px);
+    }
+
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.6);
+    }
+    .glow-pink {
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+    }
+    .glow-green {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.8), inset 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #0ea5e9;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-[#070b19] min-h-screen text-slate-100 flex flex-col justify-between relative overflow-x-hidden selection:bg-cyan-500 selection:text-black">
+
+  <!-- Ambient Cyber Circuit Background Grid -->
+  <div class="fixed inset-0 pointer-events-none opacity-25 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px]"></div>
+  <div class="fixed inset-0 pointer-events-none bg-gradient-to-t from-[#070b19] via-transparent to-[#070b19] opacity-80"></div>
+
+  <!-- Top Status & Audio Bar -->
+  <header class="relative z-10 w-full max-w-6xl mx-auto p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-400 font-bold text-sm tech-font">
+        &lt;/&gt;
+      </div>
+      <div>
+        <span class="tech-font font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-pink-500 text-sm md:text-base">
+          HARDWARE // 硬件配對大挑戰
+        </span>
+        <span class="hidden md:inline-block ml-2 text-[10px] text-cyan-400/60 font-mono tracking-widest">[SYSTEM READY]</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center space-x-2">
+      <button id="bgmToggleBtn" onclick="toggleBGM()" class="px-3 py-1.5 bg-slate-900/90 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 text-xs rounded-lg tech-font flex items-center gap-1.5 transition">
+        <span id="bgmIcon">🎵</span> <span id="bgmLabel">AUDIO: ON</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="relative z-10 w-full max-w-6xl mx-auto px-4 flex-1 flex flex-col items-center justify-center">
+
+    <!-- SCREEN 1: Futuristic Tech Start Cover -->
+    <div id="startScreen" class="w-full max-w-lg cyber-panel p-6 md:p-8 rounded-2xl my-6 backdrop-blur-md">
+      <!-- Top Cyber Tag -->
+      <div class="flex items-center justify-between border-b border-cyan-500/20 pb-3 mb-6">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span class="text-[11px] tech-font text-cyan-300 tracking-wider">ICT COMPONENT PROTOCOL</span>
+        </div>
+      </div>
+
+      <!-- Main Logo / Title -->
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-pink-500/20 border border-cyan-400/50 mb-3 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+          <span class="text-2xl">⚡</span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight text-white mb-1">
+          電 腦 好 卡
+        </h1>
+        <p class="tech-font text-xs tracking-widest text-cyan-400 uppercase font-semibold">
+          Hardware Memory Matrix
+        </p>
+      </div>
+
+      <!-- Player Name Input (Futuristic HUD Style) -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-1.5">
+          <label for="playerNameInput" class="text-xs font-bold text-slate-300 uppercase tracking-wider tech-font flex items-center gap-1">
+            <span>[01]</span> 玩家身分代號 (NAME / ID)
+          </label>
+          <span class="text-[10px] text-pink-400 font-mono">*必填</span>
+        </div>
+        <div class="relative">
+          <input type="text" id="playerNameInput" maxlength="20" placeholder="請輸入姓名或班級學號 (例如: 5A 陳大文)" 
+                 class="w-full px-4 py-3 bg-slate-900/90 text-white font-bold rounded-xl border border-cyan-500/50 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition placeholder:text-slate-600 text-sm">
+        </div>
+      </div>
+
+      <!-- Simplified Difficulty Selection (Clean Button Style) -->
+      <div class="mb-7">
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider tech-font mb-2.5">
+          <span>[02]</span> 選擇挑戰難度 (DIFFICULTY)
+        </label>
+        
+        <!-- Difficulty Option Buttons (No verbose descriptions) -->
+        <div class="grid grid-cols-3 gap-2.5">
+          <button type="button" onclick="selectDifficulty('easy')" id="diffBtn_easy"
+                  class="diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-emerald-500/40 bg-emerald-950/20 text-emerald-300 hover:border-emerald-400">
+            <span class="text-base">🟢</span>
+            <span>容易</span>
+            <span class="text-[10px] font-mono text-emerald-400/70">EASY</span>
+          </button>
+
+          <button type="button" onclick="selectDifficulty('medium')" id="diffBtn_medium"
+                  class="diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-cyan-500 bg-cyan-950/40 text-cyan-200 glow-cyan">
+            <span class="text-base">🟡</span>
+            <span>普通</span>
+            <span class="text-[10px] font-mono text-cyan-300">MEDIUM</span>
+          </button>
+
+          <button type="button" onclick="selectDifficulty('hard')" id="diffBtn_hard"
+                  class="diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-rose-500/40 bg-rose-950/20 text-rose-300 hover:border-rose-400">
+            <span class="text-base">🔴</span>
+            <span>困難</span>
+            <span class="text-[10px] font-mono text-rose-400/70">HARD</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Game Launch Button -->
+      <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-base rounded-xl transition shadow-[0_0_25px_rgba(6,182,212,0.4)] tracking-wider flex items-center justify-center gap-2 tech-font">
+        <span>INITIALIZE CHALLENGE</span> ➔
+      </button>
+    </div>
+
+    <!-- SCREEN 2: Active Gameplay Screen -->
+    <div id="gameScreen" class="w-full hidden flex flex-col items-center">
+      <!-- HUD Top Info Bar -->
+      <div class="w-full bg-slate-900/90 border border-cyan-500/30 text-white px-4 py-3 rounded-xl mb-4 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+        <div class="flex items-center gap-2">
+          <span class="text-cyan-400 tech-font">OPERATOR:</span>
+          <span id="displayPlayerName" class="text-white font-black">---</span>
+          <span id="displayDifficultyBadge" class="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40 ml-1">---</span>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1.5">
+            <span class="text-pink-400 tech-font">⏱️ TIME:</span>
+            <span id="timerDisplay" class="pixel-font text-yellow-300">00:00</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-emerald-400 tech-font">🎯 MATCH:</span>
+            <span id="matchedCountDisplay" class="font-black text-white">0 / 0</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-purple-400 tech-font">🔄 FLIPS:</span>
+            <span id="flipsCountDisplay" class="font-black text-cyan-300">0</span>
+          </div>
+        </div>
+
+        <button onclick="confirmExitGame()" class="px-2.5 py-1 bg-rose-950/80 hover:bg-rose-900 border border-rose-500/60 text-rose-300 rounded text-xs font-bold transition">
+          中斷返回
+        </button>
+      </div>
+
+      <!-- Card Matrix Slot Grid -->
+      <div id="cardGrid" class="w-full py-2">
+        <!-- Cards dynamically created here -->
+      </div>
+    </div>
+
+    <!-- SCREEN 3: Victory & Difficulty-Separated Leaderboard Screen -->
+    <div id="resultScreen" class="w-full max-w-xl cyber-panel p-6 md:p-8 rounded-2xl text-center my-6 hidden backdrop-blur-md">
+      <!-- Victory Badge -->
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400/20 to-yellow-500/20 border border-yellow-400/60 mb-2 shadow-[0_0_25px_rgba(250,204,21,0.3)]">
+        <span class="text-3xl">🏆</span>
+      </div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-0.5 tracking-tight">恭喜通關！</h2>
+      <p class="text-xs text-cyan-400 font-semibold mb-4 tech-font tracking-wide">HARDWARE RECOGNITION COMPLETE</p>
+
+      <!-- Player Performance Metrics Box -->
+      <div class="bg-slate-900/90 border border-slate-700/80 p-4 rounded-xl mb-5 text-left grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div>
+          <span class="text-slate-400 block text-[10px] tech-font">OPERATOR</span>
+          <span id="finalPlayerName" class="font-black text-cyan-300 text-sm truncate block">---</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px] tech-font">DIFFICULTY</span>
+          <span id="finalDifficulty" class="font-black text-pink-400 text-sm block">---</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px] tech-font">TOTAL FLIPS</span>
+          <span id="finalFlips" class="font-black text-yellow-300 text-sm block">0 次</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px] tech-font">TIME ELAPSED</span>
+          <span id="finalTime" class="pixel-font text-emerald-400 text-sm block">00:00</span>
+        </div>
+      </div>
+
+      <!-- Action Button: Centered "Play Again" Button -->
+      <div class="flex justify-center mb-6">
+        <button onclick="playAgain()" class="w-full max-w-xs py-3.5 bg-gradient-to-r from-pink-600 via-rose-600 to-pink-600 hover:from-pink-500 hover:to-rose-500 text-white font-black text-sm md:text-base rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(244,63,94,0.4)] tech-font tracking-wider">
+          <span>🔁</span> 再玩一局 (PLAY AGAIN)
+        </button>
+      </div>
+
+      <!-- Difficulty Leaderboard Section -->
+      <div class="border-t border-slate-800 pt-4 text-left">
+        <div class="flex justify-between items-center mb-2.5">
+          <h3 class="font-black text-white text-xs md:text-sm flex items-center gap-1.5 tech-font">
+            <span id="leaderboardTitleDifficulty" class="text-cyan-400">【普通】</span>
+            <span>榮譽榜 (前 10 名最佳表現)</span>
+          </h3>
+          <span id="leaderboardStatusBadge" class="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono px-2 py-0.5 rounded">
+            即時榜單
+          </span>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="overflow-x-auto bg-slate-900/80 rounded-xl border border-cyan-500/30">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-300 border-b border-slate-800 font-bold tech-font">
+              <tr>
+                <th class="py-2.5 px-3 text-center w-14">排名</th>
+                <th class="py-2.5 px-3">玩家</th>
+                <th class="py-2.5 px-3 text-center">翻牌次數</th>
+                <th class="py-2.5 px-3 text-right">耗時</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <!-- Dynamically populated rows or loading spinner -->
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-[10px] text-slate-400 mt-2 font-mono text-center">
+          * 排行規則：先比翻牌次數 (越少越佳)，次數相同時比完成耗時 (越短越佳)。
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative z-10 w-full text-center py-3 text-[10px] text-slate-500 font-mono">
+    <span>COMPUTER HARDWARE MEMORY MATRIX // FORM 5 ICT CURRICULUM</span>
+  </footer>
+
+  <script>
+    /* =====================================================================
+       ★★★【Google Apps Script (GAS) 網址設定區】★★★
+       
+       使用步驟：
+       1. 將您部署取得的 Google Apps Script Web App URL（結尾為 /exec）
+          貼入下方的雙引號中。
+       2. 若為空字串 ""，遊戲將全自動使用本機沙盒儲存每個難度的排行榜。
+       ===================================================================== */
+    const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzBSm1yhMr5DpofIjcFUU3dUnSDuyHbXZK0KbHM5FJJ_EZQkhhqxa9B1ii4mK-tAn6wOQ/exec";
+
+    /* =====================================================================
+       0. SAFE SANDBOX STORAGE BRIDGE (防止沙盒 iframe 報錯)
+       ===================================================================== */
+    const memoryStore = {};
+
+    async function safeGetItem(key) {
+      try {
+        if (window.sayoStorage && typeof window.sayoStorage.getItem === 'function') {
+          const val = await window.sayoStorage.getItem(key);
+          if (val !== null && val !== undefined) return val;
+        }
+      } catch (e) {}
+
+      try {
+        if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+          const localVal = window.localStorage.getItem(key);
+          if (localVal !== null) return localVal;
+        }
+      } catch (e) {}
+
+      return memoryStore[key] || null;
+    }
+
+    async function safeSetItem(key, val) {
+      try {
+        if (window.sayoStorage && typeof window.sayoStorage.setItem === 'function') {
+          await window.sayoStorage.setItem(key, val);
+        }
+      } catch (e) {}
+
+      try {
+        if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+          window.localStorage.setItem(key, val);
+        }
+      } catch (e) {}
+
+      memoryStore[key] = val;
+    }
+
+    /* =====================================================================
+       1. HARDWARE DATABASE (中五 ICT 電腦系統硬件標準定義)
+       ===================================================================== */
+    const HARDWARE_DATABASE = [
+      {
+        id: "cpu",
+        code: "CPU",
+        name: "中央處理器",
+        sub: "Central Processing Unit",
+        imageFile: "cpu.png",
+        functionDesc: "電腦的大腦，負責執行程式指令與運算所有核心數據。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="20" y="20" width="60" height="60" rx="8" fill="#0284c7" stroke="#38bdf8" stroke-width="3"/><rect x="35" y="35" width="30" height="30" rx="4" fill="#0369a1"/><circle cx="28" cy="28" r="3" fill="#facc15"/><path d="M10 30h10M10 50h10M10 70h10M90 30h-10M90 50h-10M90 70h-10M30 10v10M50 10v10M70 10v10M30 90v-10M50 90v-10M70 90v-10" stroke="#facc15" stroke-width="2.5" stroke-linecap="round"/><text x="50" y="54" fill="#ffffff" font-size="12" font-weight="900" text-anchor="middle" font-family="sans-serif">CPU</text></svg>`
+      },
+      {
+        id: "gpu",
+        code: "GPU",
+        name: "顯示卡",
+        sub: "Graphics Processing Unit",
+        imageFile: "gpu.png",
+        functionDesc: "圖形運算核心，負責渲染精美畫面、3D 遊戲及加速 AI 運算。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="15" y="25" width="70" height="48" rx="6" fill="#059669" stroke="#34d399" stroke-width="3"/><circle cx="38" cy="49" r="14" fill="#047857" stroke="#6ee7b7" stroke-width="2"/><circle cx="68" cy="49" r="14" fill="#047857" stroke="#6ee7b7" stroke-width="2"/><circle cx="38" cy="49" r="4" fill="#ffffff"/><circle cx="68" cy="49" r="4" fill="#ffffff"/><path d="M25 73v8h50v-8" fill="#f59e0b"/><text x="50" y="20" fill="#34d399" font-size="11" font-weight="900" text-anchor="middle" font-family="sans-serif">GPU</text></svg>`
+      },
+      {
+        id: "ram",
+        code: "RAM",
+        name: "隨機存取記憶體",
+        sub: "Random Access Memory",
+        imageFile: "ram.png",
+        functionDesc: "臨時工作台，暫存 CPU 運算中的數據，容量越大越能流暢進行多任務切換。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="15" y="32" width="70" height="34" rx="4" fill="#0f766e" stroke="#2dd4bf" stroke-width="3"/><rect x="23" y="38" width="10" height="14" fill="#0f172a"/><rect x="37" y="38" width="10" height="14" fill="#0f172a"/><rect x="51" y="38" width="10" height="14" fill="#0f172a"/><rect x="65" y="38" width="10" height="14" fill="#0f172a"/><path d="M20 66v6m6-6v6m6-6v6m6-6v6m10-6v6m6-6v6m6-6v6m6-6v6" stroke="#facc15" stroke-width="2"/><text x="50" y="24" fill="#2dd4bf" font-size="11" font-weight="900" text-anchor="middle" font-family="sans-serif">RAM</text></svg>`
+      },
+      {
+        id: "motherboard",
+        code: "Motherboard",
+        name: "主機板",
+        sub: "Main Circuit Board",
+        imageFile: "motherboard.png",
+        functionDesc: "整台電腦的中樞電路板，負責連接與協調 CPU、記憶體、硬碟等硬件溝通。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="15" y="15" width="70" height="70" rx="6" fill="#0e7490" stroke="#38bdf8" stroke-width="3"/><rect x="25" y="25" width="22" height="22" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/><rect x="55" y="22" width="6" height="36" fill="#0284c7"/><rect x="65" y="22" width="6" height="36" fill="#0284c7"/><rect x="25" y="60" width="46" height="8" fill="#0f172a"/><circle cx="75" cy="72" r="5" fill="#f59e0b"/><text x="36" y="39" fill="#38bdf8" font-size="8" font-weight="bold">SOCKET</text></svg>`
+      },
+      {
+        id: "ssd",
+        code: "SSD",
+        name: "固態硬碟",
+        sub: "Solid State Drive",
+        imageFile: "ssd.png",
+        functionDesc: "高速儲存裝置，數據存取速度比HDD快，適合快速啟動系統與載入遊戲。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="18" y="24" width="64" height="52" rx="6" fill="#7e22ce" stroke="#c084fc" stroke-width="3"/><rect x="26" y="32" width="48" height="26" rx="3" fill="#2e1065"/><text x="50" y="49" fill="#e9d5ff" font-size="11" font-weight="900" text-anchor="middle">FAST SSD</text><path d="M55 76h16" stroke="#facc15" stroke-width="3"/></svg>`
+      },
+      {
+        id: "hdd",
+        code: "HDD",
+        name: "傳統機械硬碟",
+        sub: "Hard Disk Drive",
+        imageFile: "hdd.png",
+        functionDesc: "高容量儲存裝置，數據存取速度比SSD慢，適合儲存大量非即時讀取的檔案。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="20" y="16" width="60" height="68" rx="6" fill="#b45309" stroke="#fbbf24" stroke-width="3"/><circle cx="50" cy="45" r="22" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/><circle cx="50" cy="45" r="8" fill="#64748b"/><path d="M50 45 L66 65" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/><text x="50" y="76" fill="#fef3c7" font-size="9" font-weight="bold" text-anchor="middle">HDD</text></svg>`
+      },
+      {
+        id: "psu",
+        code: "PSU",
+        name: "電源供應器",
+        sub: "Power Supply Unit",
+        imageFile: "psu.png",
+        functionDesc: "電腦的心臟，將家用交流電轉換為穩定的直流電，供電給全機運作。",
+        svgIcon: `<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto"><rect x="18" y="22" width="64" height="56" rx="6" fill="#be123c" stroke="#fb7185" stroke-width="3"/><circle cx="45" cy="50" r="16" fill="#4c0519"/><path d="M45 38 L45 62 M33 50 L57 50" stroke="#fda4af" stroke-width="2.5"/><path d="M68 34h8v8h-8z" fill="#facc15"/><text x="50" y="17" fill="#fb7185" font-size="10" font-weight="900" text-anchor="middle">PSU ⚡</text></svg>`
+      }
+    ];
+
+    /* =====================================================================
+       2. RETRO SOUND SYNTHESIZER (Web Audio API)
+       ===================================================================== */
+    let audioCtx = null;
+    let bgmEnabled = true;
+    let bgmInterval = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type, duration, gainVal = 0.08) {
+      if (!bgmEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    const Sound = {
+      flip: () => playTone(600, 'triangle', 0.08, 0.08),
+      match: () => {
+        playTone(523.25, 'sine', 0.09, 0.1);
+        setTimeout(() => playTone(659.25, 'sine', 0.09, 0.1), 90);
+        setTimeout(() => playTone(783.99, 'sine', 0.18, 0.1), 180);
+      },
+      mismatch: () => {
+        playTone(280, 'sawtooth', 0.12, 0.08);
+        setTimeout(() => playTone(200, 'sawtooth', 0.16, 0.08), 110);
+      },
+      win: () => {
+        const notes = [440, 554, 659, 880, 1108];
+        notes.forEach((f, idx) => {
+          setTimeout(() => playTone(f, 'square', 0.18, 0.08), idx * 120);
+        });
+      }
+    };
+
+    function startBGM() {
+      if (bgmInterval) clearInterval(bgmInterval);
+      if (!bgmEnabled) return;
+      const notes = [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23];
+      let step = 0;
+      bgmInterval = setInterval(() => {
+        if (bgmEnabled && !document.hidden && currentScreen === 'game') {
+          playTone(notes[step % notes.length], 'sine', 0.15, 0.02);
+          step++;
+        }
+      }, 360);
+    }
+
+    function stopBGM() {
+      if (bgmInterval) {
+        clearInterval(bgmInterval);
+        bgmInterval = null;
+      }
+    }
+
+    function toggleBGM() {
+      initAudio();
+      bgmEnabled = !bgmEnabled;
+      const icon = document.getElementById('bgmIcon');
+      const label = document.getElementById('bgmLabel');
+      if (bgmEnabled) {
+        icon.textContent = '🎵';
+        label.textContent = 'AUDIO: ON';
+        if (currentScreen === 'game') startBGM();
+      } else {
+        icon.textContent = '🔇';
+        label.textContent = 'AUDIO: OFF';
+        stopBGM();
+      }
+    }
+
+    /* =====================================================================
+       3. GAME STATE & DIFFICULTY LOGIC
+       ===================================================================== */
+    let currentScreen = 'start';
+    let currentPlayerName = '';
+    let currentDifficulty = 'medium'; // 預設普通
+    let cardsArray = [];
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let totalPairs = 0;
+    let flipCount = 0;
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let isProcessing = false;
+
+    function selectDifficulty(diff) {
+      currentDifficulty = diff;
+      const btns = ['easy', 'medium', 'hard'];
+      btns.forEach(b => {
+        const btn = document.getElementById(`diffBtn_${b}`);
+        if (b === diff) {
+          if (b === 'easy') {
+            btn.className = "diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-emerald-400 bg-emerald-950/60 text-emerald-200 glow-green";
+          } else if (b === 'medium') {
+            btn.className = "diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-cyan-400 bg-cyan-950/60 text-cyan-200 glow-cyan";
+          } else if (b === 'hard') {
+            btn.className = "diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-rose-400 bg-rose-950/60 text-rose-200 glow-pink";
+          }
+        } else {
+          btn.className = "diff-btn py-3 px-2 rounded-xl border-2 font-black text-sm tech-font tracking-wide transition flex flex-col items-center justify-center gap-1 border-slate-700 bg-slate-900/40 text-slate-400 hover:border-slate-500";
+        }
+      });
+    }
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function formatTime(totalSec) {
+      const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
+      const secs = (totalSec % 60).toString().padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function startGame() {
+      initAudio();
+      const nameInput = document.getElementById('playerNameInput');
+      const name = nameInput.value.trim();
+      if (!name) {
+        alert('請先輸入玩家姓名或班級代號！');
+        nameInput.focus();
+        return;
+      }
+      currentPlayerName = name;
+
+      let sampleCount = 5;
+      let typeA = 'name';
+      let typeB = 'function';
+
+      if (currentDifficulty === 'easy') {
+        sampleCount = 4;
+        typeA = 'name';
+        typeB = 'image';
+      } else if (currentDifficulty === 'medium') {
+        sampleCount = 5;
+        typeA = 'name';
+        typeB = 'function';
+      } else if (currentDifficulty === 'hard') {
+        sampleCount = 6;
+        typeA = 'image';
+        typeB = 'function';
+      }
+
+      totalPairs = sampleCount;
+      matchedPairs = 0;
+      flipCount = 0;
+      timerSeconds = 0;
+      flippedCards = [];
+      isProcessing = false;
+
+      const selectedHardware = shuffle(HARDWARE_DATABASE).slice(0, sampleCount);
+
+      let deck = [];
+      selectedHardware.forEach((hw, idx) => {
+        deck.push({
+          uid: `${hw.id}_A_${idx}`,
+          hwId: hw.id,
+          displayType: typeA,
+          hardware: hw
+        });
+        deck.push({
+          uid: `${hw.id}_B_${idx}`,
+          hwId: hw.id,
+          displayType: typeB,
+          hardware: hw
+        });
+      });
+
+      cardsArray = shuffle(deck);
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+      currentScreen = 'game';
+
+      const diffChinese = { easy: "容易", medium: "普通", hard: "困難" };
+      document.getElementById('displayPlayerName').textContent = currentPlayerName;
+      document.getElementById('displayDifficultyBadge').textContent = diffChinese[currentDifficulty] || currentDifficulty;
+      document.getElementById('matchedCountDisplay').textContent = `0 / ${totalPairs}`;
+      document.getElementById('flipsCountDisplay').textContent = '0';
+      document.getElementById('timerDisplay').textContent = '00:00';
+
+      renderCardsGrid();
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timerSeconds++;
+        document.getElementById('timerDisplay').textContent = formatTime(timerSeconds);
+      }, 1000);
+
+      startBGM();
+    }
+
+    function renderCardsGrid() {
+      const grid = document.getElementById('cardGrid');
+      grid.innerHTML = '';
+
+      // Grid layouts:
+      // Easy (8 cards): 2 rows of 4
+      // Medium (10 cards): exactly 2 rows of 5
+      // Hard (12 cards): 2 rows of 6
+      if (cardsArray.length === 8) {
+        grid.className = "w-full grid grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto";
+      } else if (cardsArray.length === 10) {
+        grid.className = "w-full grid grid-cols-5 gap-2 md:gap-3.5 max-w-5xl mx-auto";
+      } else {
+        grid.className = "w-full grid grid-cols-4 sm:grid-cols-6 gap-2 md:gap-3 max-w-6xl mx-auto";
+      }
+
+      cardsArray.forEach((card, index) => {
+        const slotEl = document.createElement('div');
+        slotEl.className = "card-slot cursor-pointer";
+        slotEl.setAttribute('data-index', index);
+        slotEl.onclick = () => handleCardClick(index);
+
+        let frontContent = '';
+        const hw = card.hardware;
+
+        if (card.displayType === 'name') {
+          frontContent = `
+            <div class="h-full flex flex-col justify-center items-center p-2 md:p-3 text-center bg-slate-900 border-2 border-cyan-500/40 rounded-xl">
+              <span class="text-[9px] md:text-xs font-mono font-bold text-cyan-400 tracking-wider mb-2">【硬件名稱】</span>
+              <div class="text-sm md:text-lg font-black text-white leading-tight">${hw.name}</div>
+              <div class="text-xs md:text-sm font-bold text-pink-400 mt-1.5 font-mono">(${hw.code})</div>
+              <div class="text-[10px] md:text-xs text-slate-400 mt-1 line-clamp-2">${hw.sub}</div>
+            </div>
+          `;
+        } else if (card.displayType === 'image') {
+          frontContent = `
+            <div class="h-full flex flex-col justify-between items-center p-2 md:p-3 text-center bg-slate-900 border-2 border-emerald-500/40 rounded-xl">
+              <span class="text-[9px] md:text-xs font-mono font-bold text-emerald-400 tracking-wider">【硬件圖片】</span>
+              <div class="relative w-full flex-1 flex items-center justify-center my-1 overflow-hidden">
+                <img src="${hw.imageFile}" alt="${hw.name}" class="max-h-24 md:max-h-32 max-w-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" 
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div style="display:none;" class="w-full h-full flex items-center justify-center">
+                  ${hw.svgIcon}
+                </div>
+              </div>
+              <div class="text-xs md:text-sm font-black text-white font-mono tracking-wide">${hw.code}</div>
+            </div>
+          `;
+        } else if (card.displayType === 'function') {
+          frontContent = `
+            <div class="h-full flex flex-col justify-center items-center p-2.5 md:p-3 text-center overflow-y-auto bg-slate-900 border-2 border-amber-500/40 rounded-xl">
+              <span class="text-[9px] md:text-xs font-mono font-bold text-amber-400 tracking-wider mb-1.5">【功能說明】</span>
+              <p class="text-[10px] md:text-xs font-bold text-slate-200 leading-relaxed text-left">
+                ${hw.functionDesc}
+              </p>
+            </div>
+          `;
+        }
+
+        slotEl.innerHTML = `
+          <div id="cardInner_${index}" class="card-inner">
+            <!-- BACK OF CARD: Anchored 9:16 card.png with zero shift -->
+            <div class="card-face card-back bg-slate-900 border-2 border-cyan-500/30 flex flex-col items-center justify-center relative">
+              <img src="card.png" alt="Card Back" class="absolute inset-0 w-full h-full object-cover" 
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <!-- Pixel tech fallback if card.png is absent -->
+              <div style="display:none;" class="w-full h-full flex flex-col items-center justify-center p-2 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+                <div class="w-10 h-10 md:w-12 md:h-12 bg-slate-800/90 rounded-xl flex items-center justify-center text-cyan-300 text-lg border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.3)] tech-font font-black">
+                  &lt;?&gt;
+                </div>
+                <span class="pixel-font text-[9px] text-pink-400 mt-2 font-bold tracking-tight">#${index + 1}</span>
+              </div>
+            </div>
+
+            <!-- FRONT OF CARD: Exact identical 9:16 layout -->
+            <div id="cardFront_${index}" class="card-face card-front flex flex-col justify-between">
+              ${frontContent}
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(slotEl);
+      });
+    }
+
+    function handleCardClick(index) {
+      if (isProcessing) return;
+      const card = cardsArray[index];
+      const innerEl = document.getElementById(`cardInner_${index}`);
+
+      if (innerEl.classList.contains('is-flipped') || card.matched) {
+        return;
+      }
+
+      Sound.flip();
+      innerEl.classList.add('is-flipped');
+      flippedCards.push({ index, card });
+
+      if (flippedCards.length === 2) {
+        flipCount++;
+        document.getElementById('flipsCountDisplay').textContent = flipCount;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      isProcessing = true;
+      const [first, second] = flippedCards;
+
+      if (first.card.hwId === second.card.hwId) {
+        setTimeout(() => {
+          Sound.match();
+          first.card.matched = true;
+          second.card.matched = true;
+
+          document.getElementById(`cardFront_${first.index}`).classList.add('glow-green');
+          document.getElementById(`cardFront_${second.index}`).classList.add('glow-green');
+
+          matchedPairs++;
+          document.getElementById('matchedCountDisplay').textContent = `${matchedPairs} / ${totalPairs}`;
+
+          flippedCards = [];
+          isProcessing = false;
+
+          if (matchedPairs === totalPairs) {
+            handleVictory();
+          }
+        }, 360);
+      } else {
+        setTimeout(() => {
+          Sound.mismatch();
+          document.getElementById(`cardInner_${first.index}`).classList.remove('is-flipped');
+          document.getElementById(`cardInner_${second.index}`).classList.remove('is-flipped');
+          flippedCards = [];
+          isProcessing = false;
+        }, 900);
+      }
+    }
+
+    /* =====================================================================
+       4. VICTORY & LEADERBOARD RESOLUTION (AWAIT GAS RESPONSE)
+       ===================================================================== */
+    function handleVictory() {
+      if (timerInterval) clearInterval(timerInterval);
+      stopBGM();
+      Sound.win();
+
+      setTimeout(() => {
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('resultScreen').classList.remove('hidden');
+        currentScreen = 'result';
+
+        const diffChinese = { easy: "容易", medium: "普通", hard: "困難" };
+        const diffName = diffChinese[currentDifficulty] || currentDifficulty;
+
+        document.getElementById('finalPlayerName').textContent = currentPlayerName;
+        document.getElementById('finalTime').textContent = formatTime(timerSeconds);
+        document.getElementById('finalFlips').textContent = `${flipCount} 次`;
+        document.getElementById('finalDifficulty').textContent = diffName;
+        document.getElementById('leaderboardTitleDifficulty').textContent = `【${diffName}】`;
+
+        // 觸發等待 GAS 回傳的排行榜程序
+        processAndAwaitGASLeaderboard();
+      }, 500);
+    }
+
+    async function processAndAwaitGASLeaderboard() {
+      const tbody = document.getElementById('leaderboardBody');
+      const badge = document.getElementById('leaderboardStatusBadge');
+
+      // 1. 立即清空舊資料，顯示載入動畫（徹底避免上一位玩家殘留顯示為「本次」）
+      badge.textContent = '雲端同步中...';
+      badge.className = 'text-[10px] bg-sky-950 text-sky-300 border border-sky-500/40 font-mono px-2 py-0.5 rounded animate-pulse';
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" class="py-8 text-center text-cyan-300 font-mono">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <span class="text-2xl animate-spin">🔄</span>
+              <span class="text-xs tech-font tracking-wider">正在連線至 Google 雲端試算表並排序...</span>
+              <span class="text-[10px] text-slate-400">CONNECTING TO GAS DATABASE</span>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      const diffChinese = { easy: "容易", medium: "普通", hard: "困難" };
+      const sheetName = diffChinese[currentDifficulty] || "普通";
+      const gasUrl = (typeof GOOGLE_APPS_SCRIPT_URL === 'string') ? GOOGLE_APPS_SCRIPT_URL.trim() : "";
+
+      // 2. 若未設定 GAS 網址，轉為本地安全備援機制
+      if (!gasUrl || !gasUrl.startsWith('http')) {
+        await fallbackLocalLeaderboard();
+        badge.textContent = '本地榜單 (未設定GAS)';
+        badge.className = 'text-[10px] bg-slate-900 text-slate-400 border border-slate-700 font-mono px-2 py-0.5 rounded';
+        return;
+      }
+
+      // 3. 正式等待 GAS 寫入、排序並回傳結果
+      try {
+        const payload = {
+          difficulty: sheetName,
+          name: currentPlayerName,
+          flips: flipCount,
+          time: timerSeconds
+        };
+
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result && result.ok) {
+          // 收到 GAS 權威資料後才繪製排行榜
+          renderGASLeaderboard(result.top10, result.current);
+          badge.textContent = '已同步至 Google Sheet';
+          badge.className = 'text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono px-2 py-0.5 rounded';
+        } else {
+          throw new Error(result.error || "GAS 回應失敗");
+        }
+      } catch (err) {
+        console.warn('GAS Fetch Failed, falling back to local storage:', err);
+        badge.textContent = '雲端超時 (已轉本地榜單)';
+        badge.className = 'text-[10px] bg-amber-950 text-amber-300 border border-amber-500/40 font-mono px-2 py-0.5 rounded';
+        await fallbackLocalLeaderboard();
+      }
+    }
+
+    // 渲染從 Google Apps Script 回傳的官方權威榜單
+    function renderGASLeaderboard(top10List, currentData) {
+      const tbody = document.getElementById('leaderboardBody');
+      tbody.innerHTML = '';
+
+      if (!top10List || top10List.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-500 font-mono">暫無雲端通關數據</td></tr>`;
+        return;
+      }
+
+      let currentInTop10 = false;
+
+      top10List.forEach((player, idx) => {
+        const rank = player.rank || (idx + 1);
+        // 比對是否為本次當前玩家
+        const isCurrent = Boolean(
+          currentData && 
+          player.name === currentData.name && 
+          player.flips === currentData.flips && 
+          Math.abs(player.time - currentData.time) < 0.1 &&
+          rank === currentData.rank
+        );
+
+        if (isCurrent) currentInTop10 = true;
+
+        let rankBadge = `<span class="font-mono text-slate-400">${rank}</span>`;
+        if (rank === 1) rankBadge = `<span class="text-yellow-400 font-black">🥇 1</span>`;
+        else if (rank === 2) rankBadge = `<span class="text-slate-300 font-black">🥈 2</span>`;
+        else if (rank === 3) rankBadge = `<span class="text-amber-600 font-black">🥉 3</span>`;
+
+        const row = document.createElement('tr');
+        row.className = `border-b border-slate-800/80 transition ${
+          isCurrent 
+            ? 'bg-cyan-950/70 text-cyan-200 border-cyan-500/40 shadow-[inset_0_0_10px_rgba(6,182,212,0.2)]' 
+            : 'text-slate-300 hover:bg-slate-900/60'
+        }`;
+
+        row.innerHTML = `
+          <td class="py-2.5 px-3 text-center">${rankBadge}</td>
+          <td class="py-2.5 px-3 font-bold flex items-center gap-1.5">
+            <span class="truncate max-w-[120px] md:max-w-[180px]">${player.name}</span>
+            ${isCurrent ? '<span class="text-[9px] bg-pink-500 text-white font-black px-1.5 py-0.5 rounded tech-font">本次</span>' : ''}
+          </td>
+          <td class="py-2.5 px-3 text-center font-mono font-bold text-yellow-300">${player.flips} 次</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-cyan-300">${formatTime(player.time)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // 【選項 B 實踐】：若當前玩家在第 10 名以外，在最底部獨立附加顯示一列
+      if (!currentInTop10 && currentData && currentData.rank > 10) {
+        // 分隔列
+        const divRow = document.createElement('tr');
+        divRow.className = "bg-slate-950/90 text-slate-500 text-center";
+        divRow.innerHTML = `<td colspan="4" class="py-1 text-[10px] font-mono tracking-widest">• • • (未進前 10 名) • • •</td>`;
+        tbody.appendChild(divRow);
+
+        // 最底部的本次成績列
+        const bottomRow = document.createElement('tr');
+        bottomRow.className = "bg-pink-950/40 text-pink-200 border-t-2 border-pink-500/50 shadow-[inset_0_0_12px_rgba(244,63,94,0.2)]";
+        bottomRow.innerHTML = `
+          <td class="py-2.5 px-3 text-center font-mono font-black text-pink-400">#${currentData.rank}</td>
+          <td class="py-2.5 px-3 font-bold flex items-center gap-1.5">
+            <span class="truncate max-w-[120px] md:max-w-[180px]">${currentData.name}</span>
+            <span class="text-[9px] bg-pink-500 text-white font-black px-1.5 py-0.5 rounded tech-font">本次</span>
+          </td>
+          <td class="py-2.5 px-3 text-center font-mono font-bold text-yellow-300">${currentData.flips} 次</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-pink-300">${formatTime(currentData.time)}</td>
+        `;
+        tbody.appendChild(bottomRow);
+      }
+    }
+
+    // 本地備援排行榜（無 GAS 網址或斷網時啟動，依舊保證零延遲與正確標註）
+    async function fallbackLocalLeaderboard() {
+      const diffKey = `pc_card_db_${currentDifficulty}`;
+      const currentRunId = 'run_' + Date.now();
+
+      const newRecord = {
+        id: currentRunId,
+        name: currentPlayerName,
+        flips: flipCount,
+        time: timerSeconds
+      };
+
+      let records = [];
+      try {
+        const raw = await safeGetItem(diffKey);
+        if (raw) records = JSON.parse(raw);
+        if (!Array.isArray(records)) records = [];
+      } catch (e) {
+        records = [];
+      }
+
+      records.push(newRecord);
+
+      // 排序規則：翻牌次數少優先 (升序) -> 耗時少優先 (升序)
+      records.sort((a, b) => {
+        if (a.flips !== b.flips) return a.flips - b.flips;
+        return a.time - b.time;
+      });
+
+      records.forEach((item, idx) => {
+        item.rank = idx + 1;
+      });
+
+      await safeSetItem(diffKey, JSON.stringify(records.slice(0, 100)));
+
+      const currentItem = records.find(r => r.id === currentRunId);
+      renderGASLeaderboard(records.slice(0, 10), currentItem);
+    }
+
+    function confirmExitGame() {
+      if (confirm('確定要中斷當前挑戰並返回設定選單嗎？')) {
+        if (timerInterval) clearInterval(timerInterval);
+        stopBGM();
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('resultScreen').classList.add('hidden');
+        document.getElementById('startScreen').classList.remove('hidden');
+        currentScreen = 'start';
+      }
+    }
+
+    function playAgain() {
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      currentScreen = 'start';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('playerNameInput').focus();
+    });
+  </script>
+</body>
+</html>
